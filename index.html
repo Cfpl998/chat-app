@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>乘风破浪独自打造 - 手机聊天APP</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Arial", "微软雅黑"; }
+    body { background: #f5f5f7; color: #333; }
+    .container { width: 100vw; height: 100vh; max-width: 600px; margin: 0 auto; overflow: hidden; position: relative; }
+    /* 登录注册页面 */
+    .auth-page { padding: 2rem 1.5rem; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+    .auth-title { text-align: center; margin-bottom: 2rem; font-size: 1.8rem; color: #2d7ff9; }
+    .tag { text-align: center; margin-bottom: 1.5rem; color: #888; font-size: 0.9rem; }
+    .input-group { margin-bottom: 1.2rem; }
+    .input-group label { display: block; margin-bottom: 0.5rem; font-size: 1rem; }
+    .input-group input { width: 100%; padding: 0.9rem; border: 1px solid #ddd; border-radius: 12px; font-size: 1rem; }
+    .btn { width: 100%; padding: 1rem; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+    .btn-primary { background: #2d7ff9; color: white; }
+    .btn-primary:hover { background: #1a6fe0; }
+    .btn-secondary { background: #f0f0f5; color: #333; margin-top: 1rem; }
+    .auth-switch { text-align: center; margin-top: 1.5rem; font-size: 0.95rem; }
+    .auth-switch a { color: #2d7ff9; text-decoration: none; }
+    .alert { padding: 0.8rem; border-radius: 8px; margin-bottom: 1rem; text-align: center; font-size: 0.9rem; }
+    .alert-error { background: #ffebee; color: #d32f2f; }
+    /* 主页面 */
+    .main-page { display: none; height: 100%; flex-direction: column; }
+    .header { background: #2d7ff9; color: white; padding: 1rem 1.5rem; text-align: center; font-size: 1.2rem; font-weight: bold; }
+    .tab-bar { display: flex; background: white; border-top: 1px solid #eee; }
+    .tab-item { flex: 1; padding: 1rem 0; text-align: center; font-size: 1rem; font-weight: 500; color: #666; cursor: pointer; border-bottom: 3px solid transparent; }
+    .tab-item.active { color: #2d7ff9; border-bottom: 3px solid #2d7ff9; }
+    .content { flex: 1; overflow-y: auto; padding: 1rem; }
+    /* 公共聊天室 */
+    .public-chat { display: none; height: 100%; flex-direction: column; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 1rem; background: #f5f5f7; }
+    .message { margin-bottom: 1rem; max-width: 80%; }
+    .message-left { align-self: flex-start; }
+    .message-right { align-self: flex-end; margin-left: auto; }
+    .message-content { padding: 0.8rem 1rem; border-radius: 18px; font-size: 0.95rem; }
+    .message-left .message-content { background: white; border: 1px solid #eee; border-bottom-left-radius: 4px; }
+    .message-right .message-content { background: #2d7ff9; color: white; border-bottom-right-radius: 4px; }
+    .message-info { font-size: 0.75rem; color: #888; margin-top: 0.3rem; }
+    .chat-input { display: flex; padding: 1rem; background: white; border-top: 1px solid #eee; }
+    .chat-input input { flex: 1; padding: 0.9rem; border: 1px solid #ddd; border-radius: 25px; font-size: 0.95rem; margin-right: 0.8rem; }
+    .chat-input button { padding: 0.9rem 1.5rem; border-radius: 25px; background: #2d7ff9; color: white; border: none; font-size: 0.95rem; cursor: pointer; }
+    /* 频道列表（大厅/已加入） */
+    .channel-list { display: none; }
+    .channel-item { background: white; border-radius: 12px; padding: 1.2rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); cursor: pointer; }
+    .channel-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.3rem; }
+    .channel-creator { font-size: 0.85rem; color: #888; }
+    .create-channel-btn { position: fixed; bottom: 80px; right: 1.5rem; width: 60px; height: 60px; border-radius: 50%; background: #2d7ff9; color: white; font-size: 2rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(45,127,249,0.3); cursor: pointer; }
+    /* 创建频道弹窗 */
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; }
+    .modal-content { background: white; border-radius: 16px; padding: 2rem 1.5rem; width: 90%; max-width: 500px; }
+    .modal-title { font-size: 1.3rem; font-weight: bold; margin-bottom: 1.5rem; text-align: center; }
+    .modal-footer { display: flex; gap: 1rem; margin-top: 1.5rem; }
+    .modal-footer button { flex: 1; padding: 0.9rem; border-radius: 12px; font-size: 1rem; cursor: pointer; }
+    /* 频道管理弹窗 */
+    .manage-modal { z-index: 101; }
+    .manage-action { padding: 1rem; border-bottom: 1px solid #eee; font-size: 1rem; cursor: pointer; }
+    .manage-action:last-child { border-bottom: none; }
+    .manage-input { margin-top: 1rem; padding: 0.8rem; border: 1px solid #ddd; border-radius: 8px; width: 100%; font-size: 0.95rem; }
+    /* 加入频道密码弹窗 */
+    .password-modal { z-index: 102; }
+    /* 响应式优化 */
+    @media (max-width: 480px) {
+      .btn { padding: 0.9rem; font-size: 1rem; }
+      .input-group input { padding: 0.8rem; font-size: 0.95rem; }
+      .chat-input input { padding: 0.8rem; font-size: 0.9rem; }
+      .chat-input button { padding: 0.8rem 1.2rem; font-size: 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 登录页面 -->
+    <div class="auth-page" id="loginPage">
+      <h1 class="auth-title">聊天APP</h1>
+      <p class="tag">乘风破浪独自打造</p>
+      <div class="alert alert-error" id="loginAlert" style="display: none;"></div>
+      <div class="input-group">
+        <label for="loginUsername">用户名</label>
+        <input type="text" id="loginUsername" placeholder="输入用户名">
+      </div>
+      <div class="input-group">
+        <label for="loginPassword">密码</label>
+        <input type="password" id="loginPassword" placeholder="输入密码">
+      </div>
+      <button class="btn btn-primary" id="loginBtn">登录</button>
+      <div class="auth-switch">
+        还没有账号？<a href="javascript:;" id="goToRegister">立即注册</a>
+      </div>
+    </div>
+
+    <!-- 注册页面 -->
+    <div class="auth-page" id="registerPage" style="display: none;">
+      <h1 class="auth-title">注册账号</h1>
+      <p class="tag">乘风破浪独自打造</p>
+      <div class="alert alert-error" id="registerAlert" style="display: none;"></div>
+      <div class="input-group">
+        <label for="registerUsername">用户名（唯一，支持中文）</label>
+        <input type="text" id="registerUsername" placeholder="设置用户名">
+      </div>
+      <div class="input-group">
+        <label for="registerPassword">密码</label>
+        <input type="password" id="registerPassword" placeholder="设置密码">
+      </div>
+      <button class="btn btn-primary" id="registerBtn">注册</button>
+      <div class="auth-switch">
+        已有账号？<a href="javascript:;" id="goToLogin">返回登录</a>
+      </div>
+    </div>
+
+    <!-- 主页面 -->
+    <div class="main-page" id="mainPage">
+      <div class="header">
+        <span id="currentPageTitle">公共聊天室</span>
+        <button style="position: absolute; right: 1.5rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: white; font-size: 1rem;" id="manageChannelBtn" style="display: none;">管理</button>
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item active" data-tab="public">公共聊天室</div>
+        <div class="tab-item" data-tab="hall">大厅</div>
+        <div class="tab-item" data-tab="myChannels">已加入频道</div>
+      </div>
+      <div class="content">
+        <!-- 公共聊天室 -->
+        <div class="public-chat" id="publicChat" style="display: flex;">
+          <div class="chat-messages" id="publicChatMessages"></div>
+          <div class="chat-input">
+            <input type="text" id="publicChatInput" placeholder="输入消息...">
+            <button id="sendPublicMsgBtn">发送</button>
+          </div>
+        </div>
+
+        <!-- 大厅频道列表 -->
+        <div class="channel-list" id="hallChannels">
+          <!-- 频道项由JS动态生成 -->
+        </div>
+
+        <!-- 已加入频道列表 -->
+        <div class="channel-list" id="myChannelsList">
+          <!-- 频道项由JS动态生成 -->
+        </div>
+
+        <!-- 私人频道聊天 -->
+        <div class="public-chat" id="privateChat" style="display: none;">
+          <div class="chat-messages" id="privateChatMessages"></div>
+          <div class="chat-input">
+            <input type="text" id="privateChatInput" placeholder="输入消息...">
+            <button id="sendPrivateMsgBtn">发送</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 创建频道弹窗 -->
+    <div class="modal" id="createChannelModal">
+      <div class="modal-content">
+        <div class="modal-title">创建私人频道</div>
+        <div class="input-group">
+          <label for="channelName">频道名称（必填）</label>
+          <input type="text" id="channelName" placeholder="输入频道名称">
+        </div>
+        <div class="input-group">
+          <label for="channelPassword">进入密码（选填）</label>
+          <input type="text" id="channelPassword" placeholder="不填则无需密码">
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" id="cancelCreateChannel">取消</button>
+          <button class="btn-primary" id="confirmCreateChannel">创建</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 频道管理弹窗 -->
+    <div class="modal manage-modal" id="manageChannelModal">
+      <div class="modal-content">
+        <div class="modal-title">频道管理</div>
+        <div class="manage-action" data-action="rename">修改频道名称</div>
+        <div class="manage-action" data-action="changePassword">修改进入密码</div>
+        <div class="manage-action" data-action="mute">禁言用户</div>
+        <div class="manage-action" data-action="unmute">解禁言用户</div>
+        <div class="manage-action" data-action="ban">封禁用户</div>
+        <div class="manage-action" data-action="unban">解封禁用户</div>
+        <div class="manage-action" data-action="clearChat">清屏聊天记录</div>
+        <div class="manage-action" style="color: #d32f2f;" data-action="dissolve">解散频道</div>
+        <input type="text" class="manage-input" id="manageTargetUser" placeholder="输入目标用户名" style="display: none;">
+        <input type="text" class="manage-input" id="manageNewName" placeholder="输入新名称" style="display: none;">
+        <input type="text" class="manage-input" id="manageNewPassword" placeholder="输入新密码（空则无需密码）" style="display: none;">
+        <div class="modal-footer">
+          <button class="btn-secondary" id="cancelManage">取消</button>
+          <button class="btn-primary" id="confirmManage" style="display: none;">确认</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 加入频道密码弹窗 -->
+    <div class="modal password-modal" id="joinPasswordModal">
+      <div class="modal-content">
+        <div class="modal-title" id="passwordModalTitle">输入频道密码</div>
+        <div class="input-group">
+          <input type="text" id="joinPasswordInput" placeholder="输入进入密码">
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" id="cancelJoinPassword">取消</button>
+          <button class="btn-primary" id="confirmJoinPassword">确认</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 创建频道按钮 -->
+    <div class="create-channel-btn" id="createChannelBtn">+</div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // 全局变量
+    let socket = io();
+    let currentUser = '';
+    let currentChannel = null; // 当前选中的私人频道
+    let isCreator = false; // 是否是当前频道创建者
+
+    // DOM元素
+    const loginPage = document.getElementById('loginPage');
+    const registerPage = document.getElementById('registerPage');
+    const mainPage = document.getElementById('mainPage');
+    const publicChat = document.getElementById('publicChat');
+    const hallChannels = document.getElementById('hallChannels');
+    const myChannelsList = document.getElementById('myChannelsList');
+    const privateChat = document.getElementById('privateChat');
+    const manageChannelBtn = document.getElementById('manageChannelBtn');
+
+    // 登录注册切换
+    document.getElementById('goToRegister').addEventListener('click', () => {
+      loginPage.style.display = 'none';
+      registerPage.style.display = 'flex';
+    });
+
+    document.getElementById('goToLogin').addEventListener('click', () => {
+      registerPage.style.display = 'none';
+      loginPage.style.display = 'flex';
+    });
+
+    // 注册功能
+    document.getElementById('registerBtn').addEventListener('click', async () => {
+      const username = document.getElementById('registerUsername').value.trim();
+      const password = document.getElementById('registerPassword').value.trim();
+      const alertEl = document.getElementById('registerAlert');
+
+      if (!username || !password) {
+        alertEl.textContent = '用户名和密码不能为空！';
+        alertEl.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          alert('注册成功！请登录');
+          registerPage.style.display = 'none';
+          loginPage.style.display = 'flex';
+        } else {
+          alertEl.textContent = data.msg;
+          alertEl.style.display = 'block';
+        }
+      } catch (err) {
+        alertEl.textContent = '网络错误，请重试！';
+        alertEl.style.display = 'block';
+      }
+    });
+
+    // 登录功能
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+      const alertEl = document.getElementById('loginAlert');
+
+      if (!username || !password) {
+        alertEl.textContent = '用户名和密码不能为空！';
+        alertEl.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          currentUser = username;
+          loginPage.style.display = 'none';
+          mainPage.style.display = 'flex';
+          initPublicChat();
+          loadChannels();
+        } else {
+          alertEl.textContent = data.msg;
+          alertEl.style.display = 'block';
+        }
+      } catch (err) {
+        alertEl.textContent = '网络错误，请重试！';
+        alertEl.style.display = 'block';
+      }
+    });
+
+    // 标签切换
+    document.querySelectorAll('.tab-item').forEach(item => {
+      item.addEventListener('click', () => {
+        // 切换标签样式
+        document.querySelectorAll('.tab-item').forEach(tab => tab.classList.remove('active'));
+        item.classList.add('active');
+        const tabName = item.dataset.tab;
+
+        // 隐藏所有内容
+        publicChat.style.display = 'none';
+        hallChannels.style.display = 'none';
+        myChannelsList.style.display = 'none';
+        privateChat.style.display = 'none';
+        manageChannelBtn.style.display = 'none';
+
+        // 显示对应内容
+        document.getElementById('currentPageTitle').textContent = item.textContent;
+        if (tabName === 'public') {
+          publicChat.style.display = 'flex';
+        } else if (tabName === 'hall') {
+          hallChannels.style.display = 'block';
+          loadChannels(); // 刷新大厅频道
+        } else if (tabName === 'myChannels') {
+          myChannelsList.style.display = 'block';
+          loadMyChannels(); // 刷新已加入频道
+        }
+      });
+    });
+
+    // 初始化公共聊天室
+    function initPublicChat() {
+      socket.emit('join-public', currentUser);
+      // 加载历史消息（简化：实际可调用接口，这里只加载实时消息）
+      socket.on('new-public-message', (msg) => {
+        addPublicMessage(msg);
+      });
+    }
+
+    // 添加公共聊天消息
+    function addPublicMessage(msg) {
+      const messagesEl = document.getElementById('publicChatMessages');
+      const isSelf = msg.username === currentUser;
+      const msgEl = document.createElement('div');
+      msgEl.className = `message ${isSelf ? 'message-right' : 'message-left'}`;
+      msgEl.innerHTML = `
+        <div class="message-content">${msg.content}</div>
+        <div class="message-info">${msg.username} · ${msg.timestamp}</div>
+      `;
+      messagesEl.appendChild(msgEl);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // 发送公共消息
+    document.getElementById('sendPublicMsgBtn').addEventListener('click', () => {
+      const content = document.getElementById('publicChatInput').value.trim();
+      if (!content) return;
+      socket.emit('public-message', { username: currentUser, content });
+      document.getElementById('publicChatInput').value = '';
+    });
+
+    // 加载大厅频道
+    async function loadChannels() {
+      try {
+        const res = await fetch('/api/channels');
+        const channels = await res.json();
+        renderChannels(channels, hallChannels);
+      } catch (err) {
+        alert('加载频道失败，请重试！');
+      }
+    }
+
+    // 加载已加入频道
+    async function loadMyChannels() {
+      try {
+        const res = await fetch('/api/user-channels', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: currentUser })
+        });
+        const channels = await res.json();
+        renderChannels(channels, myChannelsList);
+      } catch (err) {
+        alert('加载已加入频道失败，请重试！');
+      }
+    }
+
+    // 渲染频道列表
+    function renderChannels(channels, container) {
+      container.innerHTML = '';
+      if (channels.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #888;">暂无频道</div>';
+        return;
+      }
+      channels.forEach(channel => {
+        const channelEl = document.createElement('div');
+        channelEl.className = 'channel-item';
+        channelEl.dataset.channelId = channel._id;
+        channelEl.dataset.channelName = channel.name;
+        channelEl.dataset.channelPassword = channel.password;
+        channelEl.dataset.channelCreator = channel.creator;
+        channelEl.innerHTML = `
+          <div class="channel-name">${channel.name}</div>
+          <div class="channel-creator">创建者：${channel.creator} ${channel.password ? '[需密码]' : '[无密码]'}</div>
+        `;
+        // 点击频道加入
+        channelEl.addEventListener('click', () => {
+          currentChannel = channel;
+          const hasPassword = channel.password !== '';
+          if (hasPassword) {
+            // 显示密码弹窗
+            document.getElementById('joinPasswordModal').style.display = 'flex';
+          } else {
+            joinPrivateChannel(channel._id, '');
+          }
+        });
+        container.appendChild(channelEl);
+      });
+    }
+
+    // 加入私人频道
+    function joinPrivateChannel(channelId, password) {
+      socket.emit('join-channel', { channelId, username: currentUser, password });
+      socket.on('join-success', (data) => {
+        document.getElementById('joinPasswordModal').style.display = 'none';
+        // 显示私人频道聊天
+        privateChat.style.display = 'flex';
+        document.getElementById('currentPageTitle').textContent = data.channel.name;
+        // 检查是否是创建者
+        isCreator = data.channel.creator === currentUser;
+        if (isCreator) {
+          manageChannelBtn.style.display = 'block';
+        }
+        // 加载历史消息
+        const messagesEl = document.getElementById('privateChatMessages');
+        messagesEl.innerHTML = '';
+        data.messages.forEach(msg => {
+          addPrivateMessage({
+            username: msg.username,
+            content: msg.content,
+            timestamp: new Date(msg.timestamp).toLocaleString()
+          });
+        });
+        // 监听新消息
+        socket.on('new-channel-message', (msg) => {
+          addPrivateMessage(msg);
+        });
+      });
+      socket.on('join-fail', (msg) => {
+        alert(msg);
+      });
+    }
+
+    // 添加私人频道消息
+    function addPrivateMessage(msg) {
+      const messagesEl = document.getElementById('privateChatMessages');
+      const isSelf = msg.username === currentUser;
+      const msgEl = document.createElement('div');
+      msgEl.className = `message ${isSelf ? 'message-right' : 'message-left'}`;
+      msgEl.innerHTML = `
+        <div class="message-content">${msg.content}</div>
+        <div class="message-info">${msg.username} · ${msg.timestamp}</div>
+      `;
+      messagesEl.appendChild(msgEl);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // 发送私人频道消息
+    document.getElementById('sendPrivateMsgBtn').addEventListener('click', () => {
+      if (!currentChannel) return;
+      const content = document.getElementById('privateChatInput').value.trim();
+      if (!content) return;
+      socket.emit('channel-message', {
+        channelId: currentChannel._id,
+        username: currentUser,
+        content
+      });
+      document.getElementById('privateChatInput').value = '';
+      socket.on('message-fail', (msg) => {
+        alert(msg);
+      });
+    });
+
+    // 创建频道
+    document.getElementById('createChannelBtn').addEventListener('click', () => {
+      document.getElementById('createChannelModal').style.display = 'flex';
+    });
+
+    document.getElementById('cancelCreateChannel').addEventListener('click', () => {
+      document.getElementById('createChannelModal').style.display = 'none';
+    });
+
+    document.getElementById('confirmCreateChannel').addEventListener('click', () => {
+      const name = document.getElementById('channelName').value.trim();
+      const password = document.getElementById('channelPassword').value.trim();
+      if (!name) {
+        alert('频道名称不能为空！');
+        return;
+      }
+      socket.emit('create-channel', { name, password, creator: currentUser });
+      socket.on('create-success', (data) => {
+        alert('频道创建成功！');
+        document.getElementById('createChannelModal').style.display = 'none';
+        document.getElementById('channelName').value = '';
+        document.getElementById('channelPassword').value = '';
+        // 自动加入创建的频道
+        currentChannel = { _id: data.channelId, name, creator: currentUser, password };
+        joinPrivateChannel(data.channelId, password);
+      });
+      socket.on('create-fail', (msg) => {
+        alert(msg);
+      });
+    });
+
+    // 频道管理
+    manageChannelBtn.addEventListener('click', () => {
+      if (!isCreator || !currentChannel) return;
+      document.getElementById('manageChannelModal').style.display = 'flex';
+      // 隐藏管理输入框
+      document.getElementById('manageTargetUser').style.display = 'none';
+      document.getElementById('manageNewName').style.display = 'none';
+      document.getElementById('manageNewPassword').style.display = 'none';
+      document.getElementById('confirmManage').style.display = 'none';
+    });
+
+    document.getElementById('cancelManage').addEventListener('click', () => {
+      document.getElementById('manageChannelModal').style.display = 'none';
+    });
+
+    // 管理操作选择
+    document.querySelectorAll('.manage-action').forEach(action => {
+      action.addEventListener('click', () => {
+        const actionType = action.dataset.action;
+        const targetUserEl = document.getElementById('manageTargetUser');
+        const newNameEl = document.getElementById('manageNewName');
+        const newPasswordEl = document.getElementById('manageNewPassword');
+        const confirmBtn = document.getElementById('confirmManage');
+
+        // 重置输入框
+        targetUserEl.value = '';
+        newNameEl.value = '';
+        newPasswordEl.value = '';
+        targetUserEl.style.display = 'none';
+        newNameEl.style.display = 'none';
+        newPasswordEl.style.display = 'none';
+        confirmBtn.style.display = 'block';
+
+        // 根据操作类型显示输入框
+        switch (actionType) {
+          case 'rename':
+            newNameEl.style.display = 'block';
+            newNameEl.placeholder = '输入新的频道名称';
+            break;
+          case 'changePassword':
+            newPasswordEl.style.display = 'block';
+            newPasswordEl.placeholder = '输入新密码（空则无需密码）';
+            break;
+          case 'mute':
+          case 'unmute':
+          case 'ban':
+          case 'unban':
+            targetUserEl.style.display = 'block';
+            targetUserEl.placeholder = '输入要操作的用户名';
+            break;
+          case 'clearChat':
+          case 'dissolve':
+            confirmBtn.style.display = 'block';
+            break;
+        }
+
+        // 确认操作
+        confirmBtn.onclick = async () => {
+          let params = {
+            channelId: currentChannel._id,
+            creator: currentUser,
+            action: actionType
+          };
+
+          switch (actionType) {
+            case 'rename':
+              const newName = newNameEl.value.trim();
+              if (!newName) {
+                alert('名称不能为空！');
+                return;
+              }
+              params.newName = newName;
+              break;
+            case 'changePassword':
+              params.newPassword = newPasswordEl.value.trim();
+              break;
+            case 'mute':
+            case 'unmute':
+            case 'ban':
+            case 'unban':
+              const targetUser = targetUserEl.value.trim();
+              if (!targetUser) {
+                alert('用户名不能为空！');
+                return;
+              }
+              params.targetUser = targetUser;
+              break;
+          }
+
+          try {
+            const res = await fetch('/api/manage-channel', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(params)
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+              alert(data.msg);
+              document.getElementById('manageChannelModal').style.display = 'none';
+              // 解散频道后返回大厅
+              if (actionType === 'dissolve') {
+                currentChannel = null;
+                document.querySelectorAll('.tab-item[data-tab="hall"]')[0].click();
+              } else if (actionType === 'rename') {
+                document.getElementById('currentPageTitle').textContent = params.newName;
+              }
+            } else {
+              alert(data.msg);
+            }
+          } catch (err) {
+            alert('操作失败，请重试！');
+          }
+        };
+      });
+    });
+
+    // 加入频道密码确认
+    document.getElementById('confirmJoinPassword').addEventListener('click', () => {
+      const password = document.getElementById('joinPasswordInput').value.trim();
+      if (currentChannel) {
+        joinPrivateChannel(currentChannel._id, password);
+        document.getElementById('joinPasswordInput').value = '';
+      }
+    });
+
+    document.getElementById('cancelJoinPassword').addEventListener('click', () => {
+      document.getElementById('joinPasswordModal').style.display = 'none';
+      document.getElementById('joinPasswordInput').value = '';
+    });
+
+    // 输入框回车发送
+    document.getElementById('publicChatInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') document.getElementById('sendPublicMsgBtn').click();
+    });
+    document.getElementById('privateChatInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') document.getElementById('sendPrivateMsgBtn').click();
+    });
+  </script>
+</body>
+</html>
